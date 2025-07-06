@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Unit]
+Description=SOCAT as Home UDP forwarder
+PartOf=home-udpforwarders.service
+After=network-online.target
+Requires=network-online.target home-udpforwarder-46-to-6@%i.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+
+[Install]
+WantedBy=multi-user.target

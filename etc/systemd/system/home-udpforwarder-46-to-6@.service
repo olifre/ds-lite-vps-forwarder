@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Unit]
+Description=SOCAT as Home UDP forwarder, IPv4+IPv6-to-IPv6
+After=network-online.target
+Requires=network-online.target
+PartOf=home-udpforwarder@%i.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/home-forwarder.conf
+ExecStart=socat -T 120 UDP6-LISTEN:%i,reuseaddr,fork,su=nobody UDP6-SENDTO:${HOME_HOSTNAME}:%i
+Restart=always
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Unit]
+Description=Home Address change watcher
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart home-forwarders.service
+
+[Install]
+WantedBy=multi-user.target

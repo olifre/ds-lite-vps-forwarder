@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Path]
+PathModified=/etc/home-address-ipv6
+
+[Install]
+WantedBy=multi-user.target
