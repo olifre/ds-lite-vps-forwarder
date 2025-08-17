@@ -1,12 +1,12 @@
 # DS-Lite VPS forwarder
 
-This collection of unit files and scripts can be placed on a dual-stack VPS (or similar) to enable access via IPv4 to a system which is only reachable via IPv6, e.g. a home router which is behind CG-NAT / with DS-Lite and hence not reachable via IPv4 from outside.
+This collection of unit files and scripts can be placed on a dual-stack VPS (or similar) to enable access via IPv4 to systems which are only reachable via IPv6, e.g. a home router which is behind CG-NAT / with DS-Lite and hence not reachable via IPv4 from outside.
 
-The unit files allows configurable port forwarding (TCP / UDP) for both IPv4 and IPv6 to a target IPv6 host.
-The target host name is resolved regularly (via a timer unit) and in addition to the forwarding units being restarted, a notification can be sent (if configured) when the addresses change.
+The unit files allows configurable port forwarding (TCP / UDP) for both IPv4 and IPv6 to target IPv6 hosts.
+The target host names are resolved regularly (via a timer unit) and in addition to the forwarding units being restarted, notifications can be sent (if configured) when the addresses change.
 Technically, this relies on [socat](http://www.dest-unreach.org/socat/) for the actual relaying of packets.
 
-Note that the services will pass the hostname to `socat`, which should resolve the hostname each time a new connection is initiated. Still, when the timer unit detects an IPv6 address change, the services are forcibly restarted to ensure old connections are terminated / follow along the address change.
+Note that the services will pass the corresponding hostname to `socat`, which should resolve the hostname each time a new connection is initiated. Still, when the timer unit detects any IPv6 address change, the services are forcibly restarted to ensure old connections are terminated / follow along the address change.
 
 ## Common use cases
 
@@ -26,9 +26,13 @@ Note that the services will pass the hostname to `socat`, which should resolve t
    systemctl daemon-reload
    ```
 
-3. Edit `/etc/home-address-name` so it contains a DynDNS name for your home router, i.e.:
-   ```bash
-   echo "HOME_HOSTNAME=xxx.myfritz.net" > /etc/home-forwarder.conf
+3. Create and edit `/etc/home-forwarder.conf` so it contains the hostnames, a short human-readable name for them and their total count, e.g. for your home router and or home server. An example could be:
+   ```
+   HOME_ADDRESS_COUNT=2
+   HOME_HOSTDESC_0="Fritz!Box at home"
+   HOME_HOSTNAME_0=xxx.myfritz.net
+   HOME_HOSTDESC_1="Home server"
+   HOME_HOSTNAME_1=somedyndns.address.com
    ```
 
 4. In case you want mails being sent to you on address change (requires local `postfix` setup on the VPS, i.e. script will just call `mail`), issue:
@@ -46,7 +50,7 @@ Note that the services will pass the hostname to `socat`, which should resolve t
    /etc/home-address-ipv4
    /etc/home-address-ipv6
    ```
-   with the resolved IP addresses of your `HOME_HOSTNAME`. 
+   with the resolved IP addresses of your `HOME_HOSTNAME` machines.
    Note: The services will directly use the `/etc/home-forwarder.conf` as environment file, i.e. `socat` will resolve the host on any new connection.
    However, services will be restarted if the `/etc/home-address-ipv6` content changes, to ensure old connections are terminated / follow along.
 
@@ -56,12 +60,12 @@ Note that the services will pass the hostname to `socat`, which should resolve t
     systemctl start home-address-updater.timer
     ```
 
-7. Enable the actual forwards. In this example, we want to forward `44444/tcp` and `33333/udp`:
+7. Enable the actual forwards. In this example, we want to forward `44444/tcp` to host number `0` from the config and `33333/udp` to host number `1` from the config:
     ```bash
-    systemctl enable home-tcpforwarder@44444.service
-    systemctl start home-tcpforwarder@44444.service
-    systemctl enable home-udpforwarder@33333.service
-    systemctl start home-udpforwarder@33333.service
+    systemctl enable home-tcpforwarder@0:44444.service
+    systemctl start home-tcpforwarder@0:44444.service
+    systemctl enable home-udpforwarder@1:33333.service
+    systemctl start home-udpforwarder@1:33333.service
     ```
     Note that this enables forwarding from both IPv4 and IPv6 on the VPS to IPv6 at the target to ease client configuration.
     You can of course forward as many ports as wanted.
@@ -110,3 +114,12 @@ These are unused, as only the files:
 
 are depended on by the forwarder service templates. This is the case since `scoat` does dual-stack forwarding by default.
 In case your needs differ, e.g. you only want to forward IPv4 to IPv6 and leave IPv6 alone (e.g. split configuration on the clients / different config depending on location on the clients), you can of course change the dependencies to only forward IPv4 or IPv6 packets.
+
+## Alternative approaches
+
+* In case you have a home server running 24/7 in addition to the VPS, you can of course use `ssh -R` to forward local targets to the VPS and make them reachable there. This bypasses the need for a publicly reachable IPv6 address at home. You may be interested in the following settings for `/etc/sshd_config`:
+
+      GatewayPorts clientspecified
+      ClientAliveInterval 120
+
+* The `ssh` approach works for TCP only. Forwarding UDP through TCP is subject to problems when using basic approaches such as `socat`. [udp-reverse-tunnel](https://github.com/prof7bit/udp-reverse-tunnel) can be used to solve this (again, you require a home server running 24/7 and a VPS, and this bypasses the need for a publicly reachable IPv6 address at home). 

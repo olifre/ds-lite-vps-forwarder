@@ -9,7 +9,9 @@ PartOf=home-udpforwarder@%i.service
 [Service]
 Type=simple
 EnvironmentFile=/etc/home-forwarder.conf
-ExecStart=socat -T 120 UDP4-LISTEN:%i,reuseaddr,fork,su=nobody UDP6-SENDTO:${HOME_HOSTNAME}:%i
+ExecStart=/bin/bash -c 'INST=%i; HOSTNVAR=HOME_HOSTNAME_$${INST%:*}; HOSTDVAR=HOME_HOSTDESC_$${INST%:*}; PORT=$${INST#*:}; \
+			echo "Forwarding to $${!HOSTDVAR}: $${!HOSTNVAR}:$${PORT}"; \
+			socat -T 120 UDP4-LISTEN:$${PORT},reuseaddr,fork,su=nobody UDP6-SENDTO:$${!HOSTNVAR}:$${PORT}'
 Restart=always
 SuccessExitStatus=143
 
